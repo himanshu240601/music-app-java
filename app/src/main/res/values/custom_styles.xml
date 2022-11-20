@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="FullRoundCorners">
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="TopRoundCorners">
+        <item name="cornerSizeTopLeft">14dp</item>
+        <item name="cornerSizeTopRight">14dp</item>
+    </style>
+
+    <style name="TopRoundCorners2">
+        <item name="cornerSizeTopLeft">25dp</item>
+        <item name="cornerSizeTopRight">25dp</item>
+    </style>
+
+    <style name="RoundedSquare">
+        <item name="cornerSize">5dp</item>
+    </style>
+
+    <style name="RoundedSquareLg">
+        <item name="cornerSize">10dp</item>
+    </style>
+
+</resources>
