@@ -4,67 +4,29 @@ import android.Manifest;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.MediaMetadataRetriever;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.view.Window;
-import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.Fragment;
+import androidx.databinding.DataBindingUtil;
+
+import com.example.mymusicapp.currentsong.NowPlaying;
+import com.example.mymusicapp.fragmentfunctions.FragmentFunctions;
+import com.example.mymusicapp.models.MusicModel;
 
 import java.util.ArrayList;
 import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity{
 
-    public static ArrayList<MusicModel> musicClass;
-
-    private final MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-
-    public static MediaPlayer mediaPlayer;
-
-    public static final ArrayList<Integer> shuffledLastSong = new ArrayList<>();
-
-    static boolean isFav = false;
-    static boolean isShuffle = false;
-    static boolean isRepeat = false;
-    static boolean isPlaying = false;
-    static int position = -1;
-
-    public HomeFragment homeFragment = new HomeFragment();
-    public PlayingNowFragment playingNowFragment = new PlayingNowFragment();
-
-    public Fragment selected = homeFragment;
-
-    public void createFragment(Fragment fragment){
-        getSupportFragmentManager().beginTransaction().add(R.id.fragmentsContent, fragment).hide(fragment).commit();
-    }
-    public void showFragment(Fragment fragment){
-        if(fragment==playingNowFragment){
-            getSupportFragmentManager().beginTransaction()
-                    .setCustomAnimations(R.anim.slide_up_in, R.anim.slide_stay)
-                    .show(fragment).commit();
-        }else{
-            getSupportFragmentManager().beginTransaction()
-                    .show(fragment).commit();
-        }
-    }
-    public void hideFragment(Fragment fragment){
-        if(fragment==playingNowFragment){
-            getSupportFragmentManager().beginTransaction()
-                    .setCustomAnimations(R.anim.slide_stay, R.anim.slide_down_out)
-                    .hide(fragment).commit();
-        }else{
-            getSupportFragmentManager().beginTransaction()
-                    .hide(fragment).commit();
-        }
-    }
+    public static final FragmentFunctions fragmentFunctions = new FragmentFunctions();
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -72,10 +34,12 @@ public class MainActivity extends AppCompatActivity{
         if (requestCode == 121) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 getAudioFiles();
+
+                fragmentFunctions.createFragments(getSupportFragmentManager());
+
+                fragmentFunctions.openFragment(fragmentFunctions.homeFragment);
+
                 checkPrefs();
-                createFragment(homeFragment);
-                createFragment(playingNowFragment);
-                firstFragment();
             } else {
                 finishAffinity();
             }
@@ -86,51 +50,39 @@ public class MainActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        //setting the top bar color
-        Window window = this.getWindow();
-        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.setStatusBarColor(ContextCompat.getColor(this, R.color.status_bar));
+        DataBindingUtil.setContentView(this, R.layout.activity_main);
 
         if(checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
-            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 121);
+            requestPermissions(
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    121
+            );
         }else{
             getAudioFiles();
-            checkPrefs();
-            createFragment(homeFragment);
-            createFragment(playingNowFragment);
-            firstFragment();
-        }
-    }
 
-    public void firstFragment() {
-        hideFragment(selected);
-        selected = homeFragment;
-        showFragment(selected);
+            fragmentFunctions.createFragments(getSupportFragmentManager());
+
+            fragmentFunctions.openFragment(fragmentFunctions.homeFragment);
+
+            checkPrefs();
+        }
     }
 
     private void checkPrefs() {
-        SharedPreferences sharedPreferences = getSharedPreferences("MUSIC_APP_INFO", MODE_PRIVATE);
-        int last_pos = sharedPreferences.getInt("LAST_PLAYED_POS", -1);
-        if(last_pos!=-1){
-            position = last_pos;
-
-            Uri uri = Uri.parse(MainActivity.musicClass.get(position).getPath());
-            mediaPlayer = MediaPlayer.create(MainActivity.this, uri);
-            int last_seek_pos = sharedPreferences.getInt("LAST_PLAYED_SEEK", 0);
-            mediaPlayer.seekTo(last_seek_pos);
-        }
-        isShuffle = sharedPreferences.getBoolean("SHUFFLE", false);
-        isRepeat = sharedPreferences.getBoolean("REPEAT", false);
+        SharedPreferences sharedPreferences = getSharedPreferences("MyMusicApp", MODE_PRIVATE);
+        NowPlaying.isShuffle = sharedPreferences.getBoolean("SHUFFLE", false);
+        NowPlaying.isRepeat = sharedPreferences.getBoolean("REPEAT", false);
     }
 
-    //get all audio files
+    public static ArrayList<MusicModel> musicClass = new ArrayList<>();
+
     public void getAudioFiles(){
-        musicClass = new ArrayList<>();
+        final MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+
         String type = MediaStore.Files.FileColumns.MIME_TYPE + "=?";
         String mp3 = MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3");
         String[] arguments = new String[]{mp3};
+
         Cursor mCursor = getContentResolver().query(
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                 new String[] { MediaStore.Audio.Media.DISPLAY_NAME,
@@ -139,8 +91,16 @@ public class MainActivity extends AppCompatActivity{
         while (mCursor.moveToNext()) {
             String path = mCursor.getString(mCursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
             mmr.setDataSource(path);
+
+            byte[] byteArray = mmr.getEmbeddedPicture();
+            Bitmap bmp = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length);
+            Drawable img = new BitmapDrawable(bmp);
+
             musicClass.add(new MusicModel(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE),
-                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST), path, mmr.getEmbeddedPicture()));
+                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST),
+                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM),
+                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION),
+                    path, img));
         }
         mCursor.close();
         Collections.reverse(musicClass);
@@ -148,12 +108,10 @@ public class MainActivity extends AppCompatActivity{
 
     @Override
     public void onBackPressed() {
-        if(selected==homeFragment){
+        if(fragmentFunctions.selected==fragmentFunctions.homeFragment){
             moveTaskToBack(true);
         }else{
-            hideFragment(selected);
-            selected = homeFragment;
-            showFragment(selected);
+            fragmentFunctions.openFragment(fragmentFunctions.homeFragment);
         }
     }
 }
