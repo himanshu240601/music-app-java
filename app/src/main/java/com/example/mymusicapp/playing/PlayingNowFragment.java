@@ -3,9 +3,7 @@ package com.example.mymusicapp.playing;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,7 +11,6 @@ import android.widget.SeekBar;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 
@@ -21,7 +18,6 @@ import com.example.mymusicapp.MainActivity;
 import com.example.mymusicapp.R;
 import com.example.mymusicapp.currentsong.NowPlaying;
 import com.example.mymusicapp.databinding.FragmentPlayingNowBinding;
-import com.example.mymusicapp.utility.TimeClass;
 
 import java.util.Random;
 
@@ -37,63 +33,47 @@ public class PlayingNowFragment extends Fragment {
                              Bundle savedInstanceState) {
         playingNowBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_playing_now, container, false);
 
-        sharedPreferences = requireContext().getSharedPreferences("MyMusicApp", Context.MODE_PRIVATE);
+        playingNowBinding.textViewSongName.setSelected(true);
+        playingNowBinding.textViewArtistName.setSelected(true);
 
-        setControls();
+        sharedPreferences = requireContext().getSharedPreferences("MyMusicApp", Context.MODE_PRIVATE);
 
         playingNowBinding.iconBack.setOnClickListener(view-> MainActivity.fragmentFunctions.openFragment(MainActivity.fragmentFunctions.homeFragment));
 
         playingNowBinding.iconMenu.setOnClickListener(view -> Toast.makeText(requireContext(), "Menu Dialog", Toast.LENGTH_SHORT).show());
 
-        playingNowBinding.iconFav.setOnClickListener(view ->{
-            Drawable iconDrawable = (NowPlaying.isFav)
-                    ? ContextCompat.getDrawable(requireContext(), R.drawable.icon_like)
-                    : ContextCompat.getDrawable(requireContext(), R.drawable.icon_like_solid);
-            playingNowBinding.iconFav.setImageDrawable(iconDrawable);
-            String alert = NowPlaying.isFav ? "Added to Favourites" : "Removed from Favourites";
-            Toast.makeText(requireContext(), alert, Toast.LENGTH_SHORT).show();
-            NowPlaying.isFav = !NowPlaying.isFav;
-
-        });
+        playingNowBinding.iconFav.setOnClickListener(view -> new NowPlaying().checkFavorite(sharedPreferences, true));
 
         playingNowBinding.iconShuffle.setOnClickListener(view ->{
-            Drawable iconDrawable = (NowPlaying.isShuffle)
-                    ? ContextCompat.getDrawable(requireContext(), R.drawable.icon_shuffle)
-                    : ContextCompat.getDrawable(requireContext(), R.drawable.icon_shuffle_on);
-            playingNowBinding.iconShuffle.setImageDrawable(iconDrawable);
-            String alert = NowPlaying.isShuffle ? "Shuffle On" : "Shuffle Off";
-            Toast.makeText(requireContext(), alert, Toast.LENGTH_SHORT).show();
             NowPlaying.isShuffle = !NowPlaying.isShuffle;
+            if(NowPlaying.isShuffle){
+                NowPlaying.shuffledSongs.clear();
+            }
+            String alert = NowPlaying.isShuffle ? "Shuffle On" : "Shuffle Off";
+            new NowPlaying().checkShuffle();
+            Toast.makeText(requireContext(), alert, Toast.LENGTH_SHORT).show();
             sharedPreferences.edit().putBoolean("SHUFFLE", NowPlaying.isShuffle).apply();
         });
 
         playingNowBinding.iconPausePlay.setOnClickListener(view ->{
-            Drawable iconDrawable = (NowPlaying.isPlaying)
-                    ? ContextCompat.getDrawable(requireContext(), R.drawable.icon_play_lg)
-                    : ContextCompat.getDrawable(requireContext(), R.drawable.icon_pause_lg);
-            playingNowBinding.iconPausePlay.setImageDrawable(iconDrawable);
-
-            if(NowPlaying.isPlaying){
-                NowPlaying.mediaPlayer.pause();
-            }else{
-                if(NowPlaying.mediaPlayer.isPlaying()){
-                    NowPlaying.mediaPlayer.start();
+            if(NowPlaying.songInitialized){
+                if(NowPlaying.isPlaying){
+                    NowPlaying.mediaPlayer.pause();
                 }else{
-                    new NowPlaying().playSong();
+                    NowPlaying.mediaPlayer.start();
                 }
+                NowPlaying.isPlaying = !NowPlaying.isPlaying;
+                new NowPlaying().checkPlayPause();
+            }else{
+                new NowPlaying().playSong();
             }
-
-            NowPlaying.isPlaying = !NowPlaying.isPlaying;
         });
 
         playingNowBinding.iconRepeat.setOnClickListener(view ->{
-            Drawable iconDrawable = (NowPlaying.isRepeat)
-                    ? ContextCompat.getDrawable(requireContext(), R.drawable.icon_repeat)
-                    : ContextCompat.getDrawable(requireContext(), R.drawable.icon_repeat_on);
-            playingNowBinding.iconRepeat.setImageDrawable(iconDrawable);
-            String alert = NowPlaying.isRepeat ? "Repeat On" : "Repeat Off";
-            Toast.makeText(requireContext(), alert, Toast.LENGTH_SHORT).show();
             NowPlaying.isRepeat = !NowPlaying.isRepeat;
+            String alert = NowPlaying.isRepeat ? "Repeat On" : "Repeat Off";
+            new NowPlaying().checkRepeat();
+            Toast.makeText(requireContext(), alert, Toast.LENGTH_SHORT).show();
             sharedPreferences.edit().putBoolean("REPEAT", NowPlaying.isRepeat).apply();
         });
 
@@ -133,6 +113,10 @@ public class PlayingNowFragment extends Fragment {
         }
         else if(isNext && !NowPlaying.isRepeat && NowPlaying.isShuffle){
             NowPlaying.position = new Random().nextInt((MainActivity.musicClass.size() - 1));
+            //update duplicate songs in shuffled songs arraylist
+            if(NowPlaying.shuffledSongs.contains(NowPlaying.position)){
+                NowPlaying.shuffledSongs.remove(NowPlaying.position);
+            }
             NowPlaying.shuffledSongs.add(NowPlaying.position);
         }
         else if(!NowPlaying.isRepeat){
@@ -144,43 +128,5 @@ public class PlayingNowFragment extends Fragment {
         }
         new NowPlaying(MainActivity.musicClass.get(NowPlaying.position), requireContext()).updateCurrentSongNowPlaying();
         new NowPlaying().playSong();
-    }
-
-    private void setControls() {
-        if(NowPlaying.isShuffle){
-            playingNowBinding.iconShuffle.setImageDrawable(
-                    ContextCompat.getDrawable(requireContext(), R.drawable.icon_shuffle_on)
-            );
-        }
-        if(NowPlaying.isRepeat){
-            playingNowBinding.iconRepeat.setImageDrawable(
-                    ContextCompat.getDrawable(requireContext(), R.drawable.icon_repeat_on)
-            );
-        }
-    }
-
-    public void playingNow(){
-        final Handler handler = new Handler();
-        final int delay = 1000;
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                int totalDuration = NowPlaying.mediaPlayer.getDuration();
-                int currentPosition = NowPlaying.mediaPlayer.getCurrentPosition();
-                String currentTime = new TimeClass().getDurationInMinutes(NowPlaying.mediaPlayer.getCurrentPosition());
-                playingNowBinding.startTime.setText(currentTime);
-                playingNowBinding.seekBar.setProgress(currentPosition);
-                if(currentPosition == totalDuration) {
-                    handler.removeCallbacks(this);
-                }
-                handler.postDelayed(this, delay);
-
-//                sharedPreferences.edit().putInt("last_played_seek", currentPosition).apply();
-
-                if(NowPlaying.mediaPlayer!=null){
-                    NowPlaying.mediaPlayer.setOnCompletionListener(mediaPlayer -> playingNowBinding.iconNext.performClick());
-                }
-            }
-        }, delay);
     }
 }

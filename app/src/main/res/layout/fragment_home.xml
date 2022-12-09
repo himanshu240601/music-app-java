@@ -7,32 +7,46 @@
         <variable
             name="currentSong"
             type="com.example.mymusicapp.models.MusicModel" />
+        <variable
+            name="controls"
+            type="com.example.mymusicapp.models.ControlModel" />
     </data>
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="?attr/colorOnBackground">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <TextView
-                android:id="@+id/greetUser"
-                android:layout_width="wrap_content"
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/appbar"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/open_sans_bold"
-                android:padding="16dp"
-                android:text="@string/good_morning"
-                android:textSize="24sp"
+                app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <TextView
+                    android:id="@+id/greetUser"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/open_sans_bold"
+                    android:padding="16dp"
+                    android:text="@string/good_morning"
+                    android:textSize="24sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerViewSongs"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                app:layout_constraintTop_toBottomOf="@id/greetUser"
+                app:layout_constraintTop_toBottomOf="@id/appbar"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintBottom_toTopOf="@+id/currentSongCard"/>
@@ -57,6 +71,7 @@
                     app:shapeAppearanceOverlay="@style/RoundedSquareLg"
                     android:src="@{currentSong.image}"
                     android:scaleType="centerCrop"
+                    android:elevation="1dp"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
@@ -79,7 +94,8 @@
                         android:id="@+id/textViewSong"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:ellipsize="end"
+                        android:ellipsize="marquee"
+                        android:marqueeRepeatLimit="marquee_forever"
                         android:singleLine="true"
                         android:text="@{currentSong.title}"
                         android:fontFamily="@font/open_sans_semibold"
@@ -88,13 +104,14 @@
 
                     <TextView
                         android:id="@+id/textViewArtist"
-                        android:layout_width="150dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:ellipsize="end"
+                        android:ellipsize="marquee"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:singleLine="true"
                         android:text="@{currentSong.artist}"
                         android:fontFamily="@font/open_sans_light"
-                        android:singleLine="true"
                         android:textSize="11sp" />
 
                 </LinearLayout>
@@ -118,7 +135,7 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_vertical"
                         android:backgroundTint="#00FFFFFF"
-                        android:src="@drawable/icon_like"
+                        android:src="@{controls.favorite}"
                         android:contentDescription="@string/add_to_favourites" />
 
                     <ImageButton
@@ -126,7 +143,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:backgroundTint="#00FFFFFF"
-                        android:src="@drawable/icon_play"
+                        android:src="@{controls.playPause}"
                         android:contentDescription="@string/play_or_pause" />
 
                 </LinearLayout>

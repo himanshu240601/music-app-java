@@ -4,12 +4,10 @@
 
     <size android:height="100dp" android:width="100dp"/>
 
-    <gradient
-        android:startColor="#A6EFEFEF"
-        android:endColor="#8CFBFBFB"/>
+    <solid android:color="?attr/colorOnPrimary"/>
 
     <corners
-        android:topLeftRadius="15dp"
-        android:topRightRadius="15dp"/>
+        android:topLeftRadius="24dp"
+        android:topRightRadius="24dp"/>
 
 </shape>

@@ -5,14 +5,12 @@ import static android.content.Context.MODE_PRIVATE;
 
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -49,33 +47,28 @@ public class HomeFragment extends Fragment {
                              Bundle savedInstanceState) {
         fragmentHomeBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_home, container, false);
 
+        //marquee (moving text) on now playing song card
+        fragmentHomeBinding.textViewArtist.setSelected(true);
+        fragmentHomeBinding.textViewSong.setSelected(true);
+
         setUserGreeting();
 
-        fragmentHomeBinding.iconFavourite.setOnClickListener(view ->{
-            Drawable iconDrawable = (NowPlaying.isFav)
-                    ? ContextCompat.getDrawable(requireContext(), R.drawable.icon_like)
-                    : ContextCompat.getDrawable(requireContext(), R.drawable.icon_like_solid);
-            fragmentHomeBinding.iconFavourite.setImageDrawable(iconDrawable);
-            NowPlaying.isFav = !NowPlaying.isFav;
+        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("MyMusicApp", MODE_PRIVATE);
 
-        });
+        fragmentHomeBinding.iconFavourite.setOnClickListener(view -> new NowPlaying().
+                checkFavorite(sharedPreferences, true));
         fragmentHomeBinding.iconPausePlay.setOnClickListener(view ->{
-            Drawable iconDrawable = (NowPlaying.isPlaying)
-                    ? ContextCompat.getDrawable(requireContext(), R.drawable.icon_play)
-                    : ContextCompat.getDrawable(requireContext(), R.drawable.icon_pause);
-            fragmentHomeBinding.iconPausePlay.setImageDrawable(iconDrawable);
-
-            if(NowPlaying.isPlaying){
-                NowPlaying.mediaPlayer.pause();
-            }else{
-                if(NowPlaying.mediaPlayer.isPlaying()){
-                    NowPlaying.mediaPlayer.start();
+            if(NowPlaying.songInitialized){
+                if(NowPlaying.isPlaying){
+                    NowPlaying.mediaPlayer.pause();
                 }else{
-                    new NowPlaying().playSong();
+                    NowPlaying.mediaPlayer.start();
                 }
+                NowPlaying.isPlaying = !NowPlaying.isPlaying;
+                new NowPlaying().checkPlayPause();
+            }else{
+                new NowPlaying().playSong();
             }
-
-            NowPlaying.isPlaying = !NowPlaying.isPlaying;
         });
 
         fragmentHomeBinding.currentSongCard.setOnClickListener(view -> {
@@ -85,7 +78,6 @@ public class HomeFragment extends Fragment {
 
         setSongsAdapter();
 
-        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("MyMusicApp", MODE_PRIVATE);
         String path = sharedPreferences.getString("last_played_song", null);
         if(path!=null){
             for(MusicModel musicModel : MainActivity.musicClass){

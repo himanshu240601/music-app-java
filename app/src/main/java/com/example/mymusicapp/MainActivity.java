@@ -4,14 +4,9 @@ import android.Manifest;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.media.MediaMetadataRetriever;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.webkit.MimeTypeMap;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,7 +17,7 @@ import com.example.mymusicapp.fragmentfunctions.FragmentFunctions;
 import com.example.mymusicapp.models.MusicModel;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 
 public class MainActivity extends AppCompatActivity{
 
@@ -33,13 +28,7 @@ public class MainActivity extends AppCompatActivity{
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 121) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                getAudioFiles();
-
-                fragmentFunctions.createFragments(getSupportFragmentManager());
-
-                fragmentFunctions.openFragment(fragmentFunctions.homeFragment);
-
-                checkPrefs();
+                callFunctionsForSongsAndFragments();
             } else {
                 finishAffinity();
             }
@@ -49,7 +38,6 @@ public class MainActivity extends AppCompatActivity{
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
         DataBindingUtil.setContentView(this, R.layout.activity_main);
 
         if(checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
@@ -58,14 +46,22 @@ public class MainActivity extends AppCompatActivity{
                     121
             );
         }else{
-            getAudioFiles();
-
-            fragmentFunctions.createFragments(getSupportFragmentManager());
-
-            fragmentFunctions.openFragment(fragmentFunctions.homeFragment);
-
-            checkPrefs();
+            callFunctionsForSongsAndFragments();
         }
+    }
+
+    private void callFunctionsForSongsAndFragments(){
+        try{
+            getMusicFiles();
+        }catch (Exception e){
+            Toast.makeText(this, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+        }
+
+        fragmentFunctions.createFragments(getSupportFragmentManager());
+
+        fragmentFunctions.openFragment(fragmentFunctions.homeFragment);
+
+        checkPrefs();
     }
 
     private void checkPrefs() {
@@ -76,34 +72,36 @@ public class MainActivity extends AppCompatActivity{
 
     public static ArrayList<MusicModel> musicClass = new ArrayList<>();
 
-    public void getAudioFiles(){
-        final MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+    private void getMusicFiles(){
+        String selection = MediaStore.Audio.Media.DATA + " != 0";
 
-        String type = MediaStore.Files.FileColumns.MIME_TYPE + "=?";
-        String mp3 = MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3");
-        String[] arguments = new String[]{mp3};
+        String[] projection = {
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.DATA,
+                MediaStore.Audio.Media.DURATION,
+        };
 
-        Cursor mCursor = getContentResolver().query(
+        Cursor cursor = this.managedQuery(
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                new String[] { MediaStore.Audio.Media.DISPLAY_NAME,
-                        MediaStore.Audio.Media.DATA }, type, arguments, null);
+                projection,
+                selection,
+                null,
+                null);
 
-        while (mCursor.moveToNext()) {
-            String path = mCursor.getString(mCursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
-            mmr.setDataSource(path);
-
-            byte[] byteArray = mmr.getEmbeddedPicture();
-            Bitmap bmp = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length);
-            Drawable img = new BitmapDrawable(bmp);
-
-            musicClass.add(new MusicModel(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE),
-                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST),
-                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM),
-                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION),
-                    path, img));
+        while(cursor.moveToNext()){
+            if(!cursor.getString(2).contains("Recordings")){
+                MusicModel musicModel = new MusicModel(
+                        cursor.getString(0),
+                        cursor.getString(1),
+                        cursor.getString(2),
+                        cursor.getString(3)
+                );
+                musicModel.setImageData(this);
+                musicClass.add(musicModel);
+            }
         }
-        mCursor.close();
-        Collections.reverse(musicClass);
+        musicClass.sort(Comparator.comparing(MusicModel::getTitle));
     }
 
     @Override

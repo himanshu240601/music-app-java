@@ -6,6 +6,9 @@
         <variable
             name="currentSong"
             type="com.example.mymusicapp.models.MusicModel" />
+        <variable
+            name="controls"
+            type="com.example.mymusicapp.models.ControlModel" />
     </data>
 
     <FrameLayout
@@ -58,6 +61,7 @@
                 android:layout_width="match_parent"
                 android:layout_marginHorizontal="34dp"
                 android:layout_height="320dp"
+                android:elevation="2dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/nowPlayingText"
@@ -99,7 +103,6 @@
                             android:singleLine="true"
                             android:ellipsize="marquee"
                             android:marqueeRepeatLimit="marquee_forever"
-                            android:scrollHorizontally="true"
                             android:fontFamily="@font/open_sans_semibold"
                             android:text="@{currentSong.title}"
                             android:textSize="18sp" />
@@ -110,8 +113,6 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:ellipsize="marquee"
-                            android:scrollHorizontally="true"
-                            android:fadingEdge="horizontal"
                             android:singleLine="true"
                             android:text="@{currentSong.artist}"
                             android:fontFamily="@font/open_sans"
@@ -124,7 +125,7 @@
                         android:id="@+id/iconFav"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:src="@drawable/icon_like"
+                        android:src="@{controls.favorite}"
                         android:backgroundTint="#00FFFFFF"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintTop_toTopOf="@id/linearLayoutInCons"
@@ -138,6 +139,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="20dp"
+                    android:thumbTint="@color/primary"
+                    android:progressTint="@color/primary"
                     android:layout_marginTop="34dp" />
 
                 <LinearLayout
@@ -198,7 +201,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_vertical"
-                        android:src="@drawable/icon_shuffle"
+                        android:src="@{controls.shuffle}"
                         android:backgroundTint="#00FFFFFF"
                         android:contentDescription="@string/shuffle" />
 
@@ -218,7 +221,7 @@
                         android:layout_gravity="center"
                         android:backgroundTint="#00FFFFFF"
                         android:layout_marginHorizontal="8dp"
-                        android:src="@drawable/icon_play_lg"
+                        android:src="@{controls.playPause}"
                         tools:ignore="ContentDescription" />
 
                     <ImageButton
@@ -236,7 +239,7 @@
                         android:layout_height="wrap_content"
                         android:backgroundTint="#00FFFFFF"
                         android:layout_gravity="center_vertical"
-                        android:src="@drawable/icon_repeat"
+                        android:src="@{controls.repeat}"
                         android:contentDescription="@string/repeat"/>
 
                 </LinearLayout>

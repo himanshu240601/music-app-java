@@ -59,10 +59,10 @@
                 <TextView
                     android:id="@+id/subtitle"
                     android:layout_width="match_parent"
-                    android:singleLine="true"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:ellipsize="end"
+                    android:singleLine="true"
                     android:fontFamily="@font/open_sans_light"
                     android:text="@{musicModel.artist}"
                     android:textSize="12sp"/>
